@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini AI Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex flex-col items-center justify-center min-h-screen">
+    <div class="w-full max-w-2xl bg-white rounded-lg shadow-lg p-6">
+        <h1 class="text-2xl font-bold text-center text-gray-800 mb-4">Gemini AI Assistant</h1>
+        <div id="chat-box" class="h-96 overflow-y-auto border border-gray-300 rounded-lg p-4 mb-4 bg-gray-50"></div>
+        <div class="flex space-x-2">
+            <input
+                type="text"
+                id="user-input"
+                placeholder="Type your message..."
+                class="flex-1 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+            <button
+                id="send-btn"
+                class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+            >
+                Send
+            </button>
+            <button
+                id="clear-btn"
+                class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
+            >
+                Clear Chat
+            </button>
+        </div>
+    </div>
+    <script>
+        const chatBox = document.getElementById("chat-box");
+        const userInput = document.getElementById("user-input");
+        const sendBtn = document.getElementById("send-btn");
+        const clearBtn = document.getElementById("clear-btn");
+
+        // Function to append messages to chat box
+        function appendMessage(sender, message) {
+            const messageDiv = document.createElement("div");
+            messageDiv.className = `p-2 my-1 rounded-lg ${
+                sender === "You" ? "bg-blue-100 text-right" : "bg-green-100 text-left"
+            }`;
+            messageDiv.innerHTML = `<strong>${sender}:</strong> ${message.replace(/\n/g, "<br>")}`;
+            chatBox.appendChild(messageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        // Function to send message to backend
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message) {
+                alert("Please enter a message.");
+                return;
+            }
+
+            appendMessage("You", message);
+            userInput.value = "";
+            sendBtn.disabled = true;
+            sendBtn.textContent = "Sending...";
+
+            try {
+                const response = await fetch("http://localhost:8000/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ user_input: message }),
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    appendMessage("Gemini", data.response);
+                } else {
+                    appendMessage("Error", data.detail || "An error occurred.");
+                }
+            } catch (error) {
+                appendMessage("Error", "Failed to connect to the server.");
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.textContent = "Send";
+            }
+        }
+
+        // Event listeners
+        sendBtn.addEventListener("click", sendMessage);
+        userInput.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") sendMessage();
+        });
+        clearBtn.addEventListener("click", () => {
+            chatBox.innerHTML = "";
+        });
+    </script>
+</body>
+</html>
